@@ -1,0 +1,4 @@
+TSP tour visualization
+======================
+
+Simple haskell program that provides realtime visualization of TSP tours, with the primary target being iterative heurestics.
