@@ -18,7 +18,7 @@ int main()
   vertices.push_back(std::make_pair(500.0, 410.0));
   vertices.push_back(std::make_pair(510.0, 410.0));
 
-  TSPVisualize viz(std::cout);
+  TSPVisualize<std::string> viz(std::cout, "Initial tour");
 
   for(auto & e : vertices)
   {
@@ -48,10 +48,6 @@ int main()
     catch(const std::string & ref)
     {
       std::cerr << "Recieved exception: " << ref << std::endl;
-    }
-    catch(const char * str)
-    {
-      std::cerr << "Recieved some other exception" << std::endl;
     }
   }
 

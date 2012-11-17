@@ -5,6 +5,7 @@
 #include <fstream>
 #include <limits>
 #include <iostream>
+#include <map>
 #include <ostream>
 #include <string>
 
@@ -16,23 +17,31 @@
 typedef uint32_t id_t;
 static const std::string API_ID = "VIZ";
 
+template <typename T>
 class TSPVisualize
 {
   public:
     /**
      * Constructs a TSPVisualize instance.
      * @param os Output stream used for undirectional commands.
+     * @param tourId Identifier of the first tour (implicitly created).
      */
-    TSPVisualize(std::ostream & os) : out(os), vertexCount(0)
+    TSPVisualize(std::ostream & os, const T tourId) : out(os)
     {
+      vertexCount = 0;
+      changeTour(tourId);
     }
 
     /**
      * Constructs a TSPVisualize instance belonging to a file.
      * @param file Filepath where to write all output.
+     * @param tourId Identifier of the first tour (implicitly created).
      */
-    TSPVisualize(const std::string & file) : outFile(file.c_str(), std::ios::out), out(outFile), vertexCount(0)
+    TSPVisualize(const std::string & file, const T tourId) :
+      outFile(file.c_str(), std::ios::out), out(outFile)
     {
+      vertexCount = 0;
+      changeTour(tourId);
     }
 
     /**
@@ -74,7 +83,7 @@ class TSPVisualize
       {
         throw(std::string("Visualization: invalid vertex indentifier in addEdge"));
       }
-      out << API_ID << " adde " << a << " " << b << std::endl;
+      out << API_ID << " adde " << currentTour << " " << a << " " << b << std::endl;
     }
 
     /**
@@ -88,7 +97,25 @@ class TSPVisualize
       {
         throw(std::string("Visualization: invalid vertex indentifier in removeEdge"));
       }
-      out << API_ID << " del " << a << " " << b << std::endl;
+      out << API_ID << " del " << currentTour << " " << a << " " << b << std::endl;
+    }
+
+    /**
+     * Changes the current tour used for addition and removal of edges.
+     * @param tour Identifier of tour to be used.
+     */
+    void changeTour(T tour)
+    {
+      if(tours.find(tour) != tours.end())
+      {
+        currentTour = tours[tour];
+      }
+      else
+      {
+        int cnt = tours.size();
+        tours[tour] = cnt;
+        currentTour = cnt;
+      }
     }
 
   private:
@@ -98,6 +125,10 @@ class TSPVisualize
     std::ofstream outFile;
     //number of vertices added
     id_t vertexCount;
+    //Internal identifier of the current tour
+    unsigned int currentTour;
+    //Mapping of tour identifiers an internal enumerable sequence
+    std::map<T, unsigned int> tours;
 };
 
 #endif
