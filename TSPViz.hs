@@ -26,31 +26,31 @@ data Action
 type SharedGraph = TVar Graph
 
 vertexSize :: Float
-vertexSize = 5.0
+vertexSize = 3.0
 
 apiID :: String
-apiID = "VIZ "
+apiID = "VIZ"
 
 renderGraph :: Graph -> [Picture]
-renderGraph (Graph v e) = vertices ++ edges
+renderGraph (Graph v e) = vertices ++ map (color $ greyN 0.2) edges
   where
   vertices = map (\(x,y) -> translate x y $ circleSolid vertexSize) $ V.toList v
-  edges = map (\(v1, v2) -> line $ [v V.! v1, v V.! v2]) e
+  edges = map (\(v1, v2) -> line [v V.! v1, v V.! v2]) e
 
 frame :: SharedGraph -> Float -> IO Picture
 frame shared seconds = do
   g <- atomically $ readTVar shared
   return $ Pictures $ title : renderGraph g
   where
-  title = translate (-300) (300) . scale 0.2 0.2 . Text $ "TSP Visualization, waiting for input on stdin"
+  title = translate (-300) 300 . scale 0.2 0.2 $ Text "TSP Visualization, waiting for input on stdin"
 
 launch :: SharedGraph -> IO ()
 launch shared = animateIO disp white (frame shared)
   where
-  disp = InWindow "TSP tour visualization" (100, 100) (0, 0)
+  disp = InWindow "TSP tour visualization" (500, 500) (0, 0)
 
 parseAction :: String -> Maybe Action
-parseAction (stripPrefix apiID -> Just t) = parse t
+parseAction (stripPrefix (apiID ++ " ") -> Just t) = parse t
 parseAction _ = Nothing
 
 parseSep :: Read a => String -> (a, a)
@@ -67,7 +67,7 @@ parse _ = Nothing
 updateGraph :: Graph -> Action -> Graph
 updateGraph (Graph v e) (AddVertex v') = Graph (V.snoc v v') e
 updateGraph (Graph v e) (AddEdge e') = Graph v (e':e)
-updateGraph (Graph v e) (RemoveEdge e') = Graph v (filter (/= e') e)
+updateGraph (Graph v e) (RemoveEdge e') = Graph v $ filter (/= e') e
 
 parseStream :: SharedGraph -> IO ()
 parseStream shared = do
@@ -84,6 +84,6 @@ parseStream shared = do
 
 main :: IO ()
 main = do
-  shared <- atomically $ newTVar (Graph (V.empty) [])
+  shared <- atomically . newTVar $ Graph V.empty []
   forkIO $ parseStream shared
   launch shared
