@@ -17,23 +17,6 @@ int main()
   vertices.push_back(std::make_pair(400.0, 410.0));
   vertices.push_back(std::make_pair(500.0, 410.0));
   vertices.push_back(std::make_pair(510.0, 410.0));
-  vertices.push_back(std::make_pair(510.0, 410.0));
-  vertices.push_back(std::make_pair(420.0, 410.0));
-  vertices.push_back(std::make_pair(430.0, 440.0));
-  vertices.push_back(std::make_pair(140.0, 450.0));
-  vertices.push_back(std::make_pair(450.0, 480.0));
-  vertices.push_back(std::make_pair(960.0, 410.0));
-  vertices.push_back(std::make_pair(960.0, 410.0));
-  vertices.push_back(std::make_pair(960.0, 310.0));
-  vertices.push_back(std::make_pair(160.0, 111.0));
-  vertices.push_back(std::make_pair(400.0, 994.0));
-  vertices.push_back(std::make_pair(590.0, 892.0));
-  vertices.push_back(std::make_pair(220.0, 794.0));
-  vertices.push_back(std::make_pair(120.0, 792.0));
-  vertices.push_back(std::make_pair(244.0, 791.0));
-  vertices.push_back(std::make_pair(323.0, 699.0));
-  vertices.push_back(std::make_pair(402.0, 490.0));
-  vertices.push_back(std::make_pair(390.0, 499.0));
 
   TSPVisualize viz(std::cout);
 
@@ -56,6 +39,19 @@ int main()
           viz.removeEdge(i, j);
         usleep(10000);
       }
+    }
+
+    try
+    {
+      viz.addEdge(123, 2);
+    }
+    catch(const std::string & ref)
+    {
+      std::cerr << "Recieved exception: " << ref << std::endl;
+    }
+    catch(const char * str)
+    {
+      std::cerr << "Recieved some other exception" << std::endl;
     }
   }
 

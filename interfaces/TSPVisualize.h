@@ -3,12 +3,13 @@
 
 #include <cstdint>
 #include <fstream>
+#include <limits>
 #include <iostream>
 #include <ostream>
 #include <string>
 
 /**
- * Interface providing access to realtime eucledian TSP visualization.
+ * Interface providing access to realtime eucledian R^2 TSP visualization.
  * Specifices unidirectional transmission of graph information to an external binary or file.
  */
 
@@ -52,8 +53,12 @@ class TSPVisualize
      * @param y y-coordinate of the vertex.
      * @return Vertex ID to be used in future calls to the API.
      */
-    id_t addVertex(const float x, const float y)
+    id_t addVertex(const float x, const float y) throw(std::string)
     {
+      if(vertexCount + 1 == std::numeric_limits<id_t>::max())
+      {
+        throw(std::string("Visualization: surpassed number of available vertices"));
+      }
       out << API_ID << " addv " << x << " " << y << std::endl;
       vertexCount++;
     }
@@ -63,8 +68,12 @@ class TSPVisualize
      * @param a Identifier of the first vertex, as returned by addVertex.
      * @param b Identifier of the second vertex, as returned by addVertex.
      */
-    void addEdge(const id_t a, const id_t b) const
+    void addEdge(const id_t a, const id_t b) const throw(std::string)
     {
+      if(a >= vertexCount || b >= vertexCount)
+      {
+        throw(std::string("Visualization: invalid vertex indentifier in addEdge"));
+      }
       out << API_ID << " adde " << a << " " << b << std::endl;
     }
 
@@ -73,8 +82,12 @@ class TSPVisualize
      * @param a Identifier of the first vertex, as returned by addVertex.
      * @param b Identifier of the second vertex, as returned by addVertex.
      */
-    void removeEdge(const id_t a, const id_t b) const
+    void removeEdge(const id_t a, const id_t b) const throw(std::string)
     {
+      if(a >= vertexCount || b >= vertexCount)
+      {
+        throw(std::string("Visualization: invalid vertex indentifier in removeEdge"));
+      }
       out << API_ID << " del " << a << " " << b << std::endl;
     }
 
