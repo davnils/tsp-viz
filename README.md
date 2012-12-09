@@ -11,6 +11,7 @@ The API is built around the idea of having a set vertices, and a separate set of
 Vertices are added in the beginning and then edges may be added or removed troughout the execution.
 
 Typical use case:
+
     cabal install tsp-viz
     ./your-solver | tsp-viz
 
