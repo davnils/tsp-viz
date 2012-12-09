@@ -69,7 +69,7 @@ class TSPVisualize
         throw(std::string("Visualization: surpassed number of available vertices"));
       }
       out << API_ID << " addv " << x << " " << y << std::endl;
-      vertexCount++;
+      return(vertexCount++);
     }
 
     /**

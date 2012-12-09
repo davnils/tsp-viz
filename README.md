@@ -10,6 +10,10 @@ This allows efficient development without getting into trouble with graphics or 
 The API is built around the idea of having a set vertices, and a separate set of edges, which can belong to different tours.
 Vertices are added in the beginning and then edges may be added or removed troughout the execution.
 
+Typical use case:
+    cabal install tsp-viz
+    ./your-solver | tsp-viz
+
 Screenshot with two tours
 -------------------------
 <img src="https://github.com/davnils/tsp-viz/raw/master/images/demo.png" />

@@ -1,5 +1,17 @@
 {-# LANGUAGE ViewPatterns #-}
 
+-- | Program providing realtime visualization of TSP tours.
+--   This module is compiled to a separate binary and then
+--   used through an interface exposed over some input stream.
+--   Actions are parsed using a separate thread which updates
+--   a shared graph structure, which is then rendered.
+--
+--   Settings of interest are the 'vertexSize' and 'maxBend'
+--   properties, which should be scaled based on the input instance.
+--
+--   The number of tours is currently restricted to 64, based on the
+--   internal hashtable used for lookup of overlapping tours.
+--
 module Main where
 
 import Control.Applicative
@@ -20,32 +32,52 @@ import Graphics.Gloss.Interface.IO.Animate
 import Prelude hiding (lookup)
 import System.IO
 
+-- | Vertex type, coordinates in R^2.
 type Vertex = (Float, Float)
+--
+-- | Edge type, identifying two vertices.
 type Edge = (Int, Int)
+
+-- | Tour containing a list of edges.
 type Tour = [Edge]
+
+-- | Identifier of a tour. Limits internal hashtable to 64 tours.
 type TourId = Word64
 
+-- | Graph representation.
 data Graph = Graph (V.Vector Vertex) (V.Vector Tour)
 
+-- | Action parsed from input stream.
 data Action
+  -- | Add a vertex to the graph.
   = AddVertex Vertex
+  -- | Add an edge to the graph, belonging to a specific tour.
   | AddEdge TourId Edge
+  -- | Remove an edge from the graph, belonging to a specific tour.
   | RemoveEdge TourId Edge
   deriving Show
 
+-- | Type of shared state between render part and input stream parser.
 type SharedGraph = TVar (Graph, HashTable Edge Word64)
 
+-- | API identifier used as prefix in input stream, parsed as the first word, with other content being ignored.
 apiID :: String
 apiID = "VIZ"
 
-vertexSize, maxBend :: Float
-vertexSize = 0.3
+-- | Radius of a circle representing a vertex.
+vertexSize :: Float
+vertexSize = 1.0
+
+-- | Radius of arc being rendered when overalpping edges occur. Lower values results in tightly coupled edges.
+maxBend :: Float
 maxBend = 0.5
 
+-- | Available colors used in rendering of edges, one color for each tour.
 colors :: [Color]
 colors = [blue, red, green, yellow, cyan, magenta, rose, violet, azure,
           aquamarine, chartreuse, orange]
 
+-- | Renders a graph using the current graph representation and hashtable indicating overlapping edges.
 renderGraph :: Graph -> HashTable Edge Word64 -> IO [Picture]
 renderGraph g@(Graph v tours) table = do
   edges <- (join . V.toList) <$> V.mapM (renderTour g table) tourList
@@ -55,6 +87,7 @@ renderGraph g@(Graph v tours) table = do
   tourList =  V.zip tours $ V.enumFromN 0 tourCount
   tourCount = V.length tours
 
+-- | Renders a tour.
 renderTour :: Graph -> HashTable Edge Word64 -> (Tour, TourId) -> IO [Picture]
 renderTour (Graph v _) table (e, num) = mapM processEdge e
   where
@@ -65,9 +98,11 @@ renderTour (Graph v _) table (e, num) = mapM processEdge e
     let curr = popCount masked -- gives count of current edge
     return . color (edgeColor num) $ drawEdge (v V.! v1) (v V.! v2) size curr
 
+-- | Selects a color based on the tour identifier.
 edgeColor :: TourId -> Color
 edgeColor num = colors !! (fromIntegral num `mod` length colors)
 
+-- | Draws an edge of a tour.
 drawEdge :: Vertex -> Vertex -> Int -> Int -> Picture
 drawEdge p1 p2 num curr = if odd num && curr == num - 1 then Line [p1, p2] else mapped
   where
@@ -79,6 +114,7 @@ drawEdge p1 p2 num curr = if odd num && curr == num - 1 then Line [p1, p2] else 
   len = magV p3 / 2
   sub (a1, a2) (b1, b2) = (a1 - b1, a2 - b2)
 
+-- | Generates a bent arc used when overlapping edges occur.
 bendEdge :: Int -> Int -> Picture
 bendEdge num edge = flip . scale 1 yscale $ arc 0 180 1
   where
@@ -86,36 +122,44 @@ bendEdge num edge = flip . scale 1 yscale $ arc 0 180 1
        | otherwise = scale 1 (-1)
   yscale = maxBend - realToFrac edge / (realToFrac num / maxBend)
 
+-- | Frame stepping function used in render.
 frame :: SharedGraph -> Float -> IO Picture
 frame shared _ = do
   (g, table) <- atomically $ readTVar shared
   Pictures <$> renderGraph g table
 
+-- | Launches the actual visual application thread.
 launch :: SharedGraph -> IO ()
 launch shared = animateIO disp white (frame shared)
   where
   disp = InWindow "TSP tour visualization" (1000, 1000) (0, 0)
 
--- assumes ordered vertices
+-- | Hashes an edge into representation used by the hash table.
+--   Edges are stored for future lookup when detecting overlapping edges between tours.
+--   Assumes ordered vertices, with min(v1, v2) being supplied as the first argument.
 hashEdge :: Edge -> Int32
 hashEdge (v1, v2) = hashInt v1 * hashInt v2
 
+-- | Identifies the initial API ID prefix and consumes the rest of the line.
 parseAction :: String -> Maybe Action
 parseAction (stripPrefix (apiID ++ " ") -> Just t) = parse $ words t
 parseAction _ = Nothing
 
+-- | Parses a tuple of numerical values.
 parseVertices :: (Read a, Ord a) => [String] -> (a, a)
 parseVertices [a,b] = (min a' b', max a' b')
   where
   a' = read a
   b' = read b
 
+-- | Parses an action from the tokenized input stream.
 parse :: [String] -> Maybe Action
 parse ("addv" : points) = Just . AddVertex $ parseVertices points
 parse ("adde" : tour : t) = Just . AddEdge (read tour) $ parseVertices t
 parse ("del" : tour : t) = Just . RemoveEdge (read tour) $ parseVertices t
 parse _ = Nothing
 
+-- | Updates the graph representation based on some action, either add vertex, add edge, or remove edge.
 updateGraph :: (Graph, HashTable Edge Word64) -> Action -> IO Graph
 updateGraph (Graph v e, _) (AddVertex v') = return $ Graph (V.snoc v v') e
 
@@ -136,12 +180,15 @@ updateGraph (graph@(Graph v tours), hash) (RemoveEdge tour e') = updateHash >> r
 
   graph' = Graph v $ updateTour tours tour $ filter (/= e')
 
+-- | Updates the tour representation by taking the current vector length into account.
 updateTour :: V.Vector Tour -> TourId -> (Tour -> Tour) -> V.Vector Tour
 updateTour curr num f | V.length curr >= num' + 1 = V.update curr $
                         V.singleton (num', f $ curr V.! num')
                       | otherwise = V.snoc curr $ f []
   where num' = fromIntegral num
 
+-- | Thread consuming stream input and acting on the specified actions.
+--   State shared with render thread is synchronized using a TVar primitive.
 parseStream :: SharedGraph -> IO ()
 parseStream shared = do
   action <- parseAction <$> getLine
@@ -154,6 +201,7 @@ parseStream shared = do
 
   parseStream shared
 
+-- | Main function launching the separate parser and render threads.
 main :: IO ()
 main = do
   hashTable <- new (==) hashEdge
