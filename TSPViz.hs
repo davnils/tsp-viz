@@ -12,6 +12,9 @@
 --   The number of tours is currently restricted to 64, based on the
 --   internal hashtable used for lookup of overlapping tours.
 --
+--   In order to use this as an external program, you will need to
+--   retrieve the appropiate interface from the linked git repo.
+--
 module Main where
 
 import Control.Applicative
