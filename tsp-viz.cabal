@@ -1,6 +1,6 @@
 name:                tsp-viz
 version:             0.1.0.0
-synopsis:            Realtime TSP visualization.
+synopsis:            Real time TSP tour visualization.
 
 license:             BSD3
 license-file:        LICENSE
@@ -24,4 +24,4 @@ cabal-version:       >=1.8
 
 executable tsp-viz
   main-is:           TSPViz.hs
-  build-depends:     base ==4.5.*, stm ==2.3.*, vector ==0.9.*, gloss ==1.8.*
+  build-depends:     base ==4.5.*, stm ==2.3.*, vector ==0.9.*, gloss ==1.7.*

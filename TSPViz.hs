@@ -1,6 +1,6 @@
 {-# LANGUAGE ViewPatterns #-}
 
--- | Program providing realtime visualization of TSP tours.
+-- | Program providing real time visualization of TSP tours.
 --   This module is compiled to a separate binary and then
 --   used through an interface exposed over some input stream.
 --   Actions are parsed using a separate thread which updates
